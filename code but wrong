@@ -1,0 +1,88 @@
+# Sunucu-İstemci İletişimi
+def handle_client(client_socket, player):
+    client_socket.send(b"Karakter adınızı ve sınıfınızı girin (örn. 'Ahmet, Savaşçı'): ")
+    data = client_socket.recv(1024).decode('utf-8').strip()
+    name, char_class = data.split(", ")
+    player.name = name
+    player.character_class = char_class
+
+    while True:
+        client_socket.send(b"Bir eylem seçin: 'savaş', 'keşfet', 'envanter', 'çıkış': ")
+        action = client_socket.recv(1024).decode('utf-8').strip()
+
+        if action == 'savaş':
+            enemy = Enemy("Goblin", 30, 5, 2)
+            combat(player, enemy)
+        elif action == 'keşfet':
+            random_event(player)
+        elif action == 'envanter':
+            client_socket.send(f"Envanteriniz: {player.inventory}".encode('utf-8'))
+        elif action == 'çıkış':
+            client_socket.send(b"Oyun bitti, hoşça kalın!")
+            break
+        else:
+            client_socket.send(b"Geçersiz seçenek.")
+
+    client_socket.close()
+
+def start_server():
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.bind(("0.0.0.0", 9999))
+    server.listen(5)
+    print("Sunucu başlatıldı, bağlantı bekleniyor...")
+
+    while True:
+        client_socket, addr = server.accept()
+        print(f"Yeni bağlantı: {addr}")
+
+        player = Character("", "")
+        client_handler = threading.Thread(target=handle_client, args=(client_socket, player))
+        client_handler.start()
+
+# Rastgele Olaylar
+def random_event(player):
+    event = random.choice(
+        ["hazine", "tuzağa düşme", "düşman karşılaşması", "tüccarla karşılaşma", "bilgeyle karşılaşma", "yoldaş bulma", "gizli görev"])
+    if event == "hazine":
+        gold_found = random.randint(10, 50)
+        player.gold += gold_found
+        print(f"Bir hazine buldunuz ve {gold_found} altın kazandınız!")
+    elif event == "tuzağa düşme":
+        damage = random.randint(5, 20)
+        player.health -= damage
+        print(f"Bir tuzağa düştünüz ve {damage} hasar aldınız. Sağlık: {player.health}")
+    elif event == "düşman karşılaşması":
+        enemy = Enemy("Rastgele Düşman", random.randint(20, 60), random.randint(5, 15), random.randint(2, 5))
+        combat(player, enemy)
+    elif event == "tüccarla karşılaşma":
+        print("Bir tüccarla karşılaştınız. Eşyalar satabilir veya yeni eşyalar satın alabilirsiniz.")
+    elif event == "bilgeyle karşılaşma":
+        print("Bir bilgeyle karşılaştınız ve yeni bir büyü öğrendiniz.")
+    elif event == "yoldaş bulma":
+        companion = Companion("Sadık Yoldaş", "savaşçı")
+        player.add_companion(companion)
+    elif event == "gizli görev":
+        print("Gizli bir görev keşfettiniz ve ödüllendirildiniz!")
+
+# Oyunu başlat
+if __name__ == "__main__":
+    start_server()
+'''
+Açıklamalar:
+Sunucu: start_server fonksiyonu, bir TCP/IP sunucusu oluşturur ve istemcilerden gelen bağlantıları dinler. Her yeni istemci bağlantısı, ayrı bir thread'de işlenir.
+
+İstemci İşlemleri: handle_client fonksiyonu, istemcinin (oyuncunun) gönderdiği komutları işler. Oyuncular çeşitli eylemler seçebilir (örneğin, savaş, keşfetme, envantere bakma).
+
+Karakter ve Sınıflar: Character, Companion, ve Enemy sınıfları, oyuncu karakterini, yoldaşları ve düşmanları tanımlar. Her karakter sınıfı farklı özelliklere sahiptir.
+
+Savaş Sistemi: Sıra tabanlı savaş sistemi, oyuncuların düşmanlara karşı stratejik kararlar almasını sağlar. Yoldaşlar savaşta yardımcı olabilir.
+
+Rastgele Olaylar: random_event fonksiyonu, oyunculara çeşitli sürprizler sunar; hazineler bulabilir, düşmanlarla karşılaşabilir veya yeni görevler keşfedebilirler.
+
+İleri Aşamalar:
+Web Tabanlı Genişleme: Flask veya Django gibi bir web framework kullanarak bu oyunu bir web uygulamasına dönüştürmek.
+Veritabanı Entegrasyonu: Karakter ve oyun durumunu bir veritabanında saklamak.
+Grafik Arayüz: Oyuna bir grafik arayüz eklemek için Pygame veya benzeri bir kütüphane kullanmak.
+Detaylı Görevler ve Hikaye: Oyuna detaylı görevler, hikaye bölümleri ve daha fazla karakter gelişim özelliği eklemek.
+Bu kod, online bir RPG oyununun temelini oluşturur ve daha da genişletilebilir. Oyun, her oyuncu için benzersiz bir deneyim sunacak şekilde özelleştirilebilir ve geliştirilmiş bir çevrimiçi çok oyunculu yapıya dönüştürülebilir.
+'''
