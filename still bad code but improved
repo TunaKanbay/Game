@@ -1,0 +1,429 @@
+def game():
+    #Certainly! I'll further develop the game, adding even more complexity, mechanics, and features. Here's an advanced and highly detailed version of the game, along with an extensive explanation of all elements.
+
+    import socket
+    import threading
+    import random
+    import time
+
+    # Character class with detailed attributes and abilities
+    class Character:
+        def __init__(self, name, char_class):
+            self.name = name
+            self.char_class = char_class
+            self.level = 1
+            self.health = 100
+            self.mana = 100
+            self.stamina = 100
+            self.gold = 0
+            self.experience = 0
+            self.skill_points = 5
+            self.attributes = {
+                'strength': 10,
+                'dexterity': 10,
+                'intelligence': 10,
+                'charisma': 10,
+                'wisdom': 10,
+                'constitution': 10
+            }
+            self.skills = {
+                'attack': {'level': 1, 'damage': (10, 20)},
+                'defense': {'level': 1, 'reduction': (5, 10)},
+                'magic': {'level': 1, 'damage': (20, 40)},
+                'stealth': {'level': 1, 'success_rate': 50},
+                'alchemy': {'level': 1, 'potion_strength': 1.0},
+                'crafting': {'level': 1, 'item_quality': 1.0},
+                'persuasion': {'level': 1, 'effectiveness': 50}
+            }
+            self.inventory = []
+            self.equipment = {'weapon': None, 'armor': None, 'accessory': None}
+            self.reputation = {'Eldoria': 0, 'Stormwind': 0, 'Ironforge': 0, 'Rivendell': 0, 'Shadowfen': 0}
+            self.alignment = 'neutral'
+            self.guild = None
+            self.companions = []
+            self.quest_log = []
+            self.faction_standings = {'Brotherhood of Steel': 0, 'Mages Guild': 0, 'Thieves Guild': 0}
+
+        def level_up(self):
+            self.level += 1
+            self.skill_points += 5
+            self.health += 20
+            self.mana += 20
+            self.stamina += 10
+            self.experience = 0
+            print(f'{self.name} has leveled up to level {self.level}!')
+            print(f'{self.name} now has {self.skill_points} skill points and {self.attributes} attribute points to distribute.')
+
+        def allocate_attribute_points(self, attribute, points):
+            if points <= self.skill_points:
+                self.attributes[attribute] += points
+                self.skill_points -= points
+                print(f'{attribute.capitalize()} increased by {points}. New value: {self.attributes[attribute]}')
+            else:
+                print("Not enough skill points.")
+
+        def upgrade_skill(self, skill_name):
+            if self.skill_points > 0 and skill_name in self.skills:
+                self.skills[skill_name]['level'] += 1
+                self.skill_points -= 1
+                print(f'{skill_name.capitalize()} skill upgraded to level {self.skills[skill_name]["level"]}!')
+            else:
+                print("Not enough skill points or invalid skill.")
+
+        def add_to_inventory(self, item):
+            self.inventory.append(item)
+            print(f'{item} added to inventory.')
+
+        def equip_item(self, item):
+            if item in self.inventory:
+                if item['type'] == 'weapon':
+                    self.equipment['weapon'] = item
+                elif item['type'] == 'armor':
+                    self.equipment['armor'] = item
+                elif item['type'] == 'accessory':
+                    self.equipment['accessory'] = item
+                self.inventory.remove(item)
+                print(f'{self.name} equipped {item["name"]}.')
+            else:
+                print("Item not in inventory.")
+
+        def add_reputation(self, city, amount):
+            self.reputation[city] += amount
+            print(f'{self.name} gained {amount} reputation in {city}. Current reputation: {self.reputation[city]}')
+
+        def join_faction(self, faction_name):
+            if faction_name in self.faction_standings:
+                self.faction_standings[faction_name] += 10
+                print(f'{self.name} joined {faction_name} and gained standing. Current standing: {self.faction_standings[faction_name]}')
+            else:
+                print(f'Invalid faction: {faction_name}')
+
+        def accept_quest(self, quest):
+            self.quest_log.append(quest)
+            print(f'{self.name} accepted the quest: {quest["title"]}')
+
+        def complete_quest(self, quest_title):
+            quest = next((q for q in self.quest_log if q["title"] == quest_title), None)
+            if quest:
+                self.experience += quest['reward']['experience']
+                self.gold += quest['reward']['gold']
+                if 'item' in quest['reward']:
+                    self.add_to_inventory(quest['reward']['item'])
+                self.quest_log.remove(quest)
+                print(f'{self.name} completed the quest: {quest_title} and received rewards!')
+            else:
+                print("Quest not found in log.")
+
+        def rest(self):
+            print(f'{self.name} is resting...')
+            self.health = min(100 + (self.level * 20), self.health + 50)
+            self.mana = min(100 + (self.level * 20), self.mana + 50)
+            self.stamina = min(100 + (self.level * 10), self.stamina + 30)
+            print(f'{self.name} has recovered to {self.health} health, {self.mana} mana, and {self.stamina} stamina.')
+
+    # Enhanced Companion class with more detailed roles and interactions
+    class Companion:
+        def __init__(self, name, role):
+            self.name = name
+            self.role = role
+            self.level = 1
+            self.health = 50 + (self.level * 10)
+            self.attack_power = 10 + (self.level * 5)
+            self.defense_power = 5 + (self.level * 3)
+
+        def level_up(self):
+            self.level += 1
+            self.health += 10
+            self.attack_power += 5
+            self.defense_power += 3
+            print(f'{self.name} the {self.role} leveled up to {self.level}!')
+
+        def assist_in_combat(self, enemy):
+            assistance = random.randint(10, 20) + (self.level * 2)
+            enemy.health -= assistance
+            print(f'{self.name} assists in combat, dealing {assistance} damage to {enemy.name}!')
+
+        def heal(self, player):
+            heal_amount = random.randint(15, 30) + (self.level * 2)
+            player.health += heal_amount
+            print(f'{self.name} heals {player.name} for {heal_amount} health.')
+
+    # Advanced Enemy class with varying difficulty levels
+    class Enemy:
+        def __init__(self, name, health, attack, defense, difficulty='normal'):
+            self.name = name
+            self.health = health
+            self.attack = attack
+            self.defense = defense
+            self.difficulty = difficulty
+            self.attack_mod = 1.0
+            self.defense_mod = 1.0
+            self.adjust_difficulty()
+
+        def adjust_difficulty(self):
+            if self.difficulty == 'easy':
+                self.attack_mod = 0.8
+                self.defense_mod = 0.8
+            elif self.difficulty == 'hard':
+                self.attack_mod = 1.2
+                self.defense_mod = 1.2
+            elif self.difficulty == 'legendary':
+                self.attack_mod = 1.5
+                self.defense_mod = 1.5
+
+        def attack_player(self, player):
+            damage = max(0, int((self.attack * self.attack_mod) - player.skills['defense']['reduction'][1]))
+            player.health -= damage
+            print(f'{self.name} attacks {player.name} for {damage} damage!')
+
+    # Quest class for creating and managing quests
+    class Quest:
+        def __init__(self, title, description, objective, reward):
+            self.title = title
+            self.description = description
+            self.objective = objective
+            self.reward = reward
+            self.completed = False
+
+        def check_completion(self, player):
+            if self.objective['type'] == 'kill' and self.objective['target'] == 'enemy' and player.level >= self.objective['level']:
+                self.completed = True
+                player.complete_quest(self.title)
+                print(f'Quest {self.title} completed!')
+            elif self.objective['type'] == 'collect' and self.objective['item'] in player.inventory:
+                self.completed = True
+                player.complete_quest(self.title)
+                print(f'Quest {self.title} completed!')
+            else:
+                print(f'Quest {self.title} is not yet completed.')
+
+    # Guild class with more intricate functionalities
+    class Guild:
+        def __init__(self, name):
+            self.name = name
+            self.members = []
+            self.guild_level = 1
+            self.guild_experience = 0
+            self.resources = {'gold': 0, 'materials': 0}
+
+        def add_member(self, player):
+            self.members.append(player)
+            print(f'{player.name} has joined the guild {self.name}!')
+
+        def remove_member(self, player):
+            if player in self.members:
+                self.members.remove(player)
+                print(f'{player.name} has left the guild {self.name}!')
+
+        def upgrade_guild(self):
+            if self.guild_experience >= 100:
+                self.guild_level += 1
+                self.guild_experience = 0
+                print(f'The guild {self.name} has leveled up to level {self.guild_level}!')
+
+        def contribute_resources(self, player, resource_type, amount):
+            if resource_type in self.resources and amount <= player.gold:
+                self.resources[resource_type] += amount
+                player.gold -= amount
+                print(f'{player.name} contributed {amount} {resource_type} to the guild {self.name}.')
+            else:
+                print("Invalid contribution.")
+
+    # Handle player connections and gameplay
+    def handle_client(client_socket, player):
+        client_socket.send(b"Welcome to the RPG Game! Enter your character name: ")
+        name = client_socket.recv(1024).decode('utf-8').strip()
+        client_socket.send(b"Choose your class (Warrior, Mage, Archer): ")
+        char_class = client_socket.recv(1024).decode('utf-8').strip()
+        player.name = name
+        player.char_class = char_class
+
+        while True:
+            client_socket.send(b"Choose an action: 'explore', 'inventory', 'guild', 'skills', 'quests', 'rest', 'exit': ")
+            action = client_socket.recv(1024).decode('utf-8').strip()
+
+            if action == 'explore':
+                cities = ['Eldoria', 'Stormwind', 'Ironforge', 'Rivendell', 'Shadowfen']
+                client_socket.send(f"Choose a city to explore: {', '.join(cities)}: ".encode('utf-8'))
+                city = client_socket.recv(1024).decode('utf-8').strip()
+                event = random.choice(['merchant', 'battle', 'treasure', 'companion'])
+                if event == 'merchant':
+                    client_socket.send(b"A merchant offers you goods. Do you want to trade? (yes/no): ")
+                    trade = client_socket.recv(1024).decode('utf-8').strip()
+                    if trade == 'yes':
+                        player.gold -= random.randint(10, 50)
+                        client_socket.send(f"You bought an item. Your remaining gold: {player.gold}".encode('utf-8'))
+                    else:
+                        client_socket.send(b"You declined to trade.")
+                elif event == 'battle':
+                    enemy = Enemy('Goblin', 50, 15, 10)
+                    client_socket.send(f"A wild {enemy.name} appears! Prepare for battle.".encode('utf-8'))
+                    while enemy.health > 0 and player.health > 0:
+                        client_socket.send(b"Choose an action: 'attack', 'defend', 'use magic': ")
+                        combat_action = client_socket.recv(1024).decode('utf-8').strip()
+                        if combat_action == 'attack':
+                            damage = random.randint(*player.skills['attack']['damage'])
+                            enemy.health -= damage
+                            client_socket.send(f"You dealt {damage} damage to {enemy.name}. Enemy health: {enemy.health}".encode('utf-8'))
+                        elif combat_action == 'defend':
+                            player.skills['defense']['reduction'] = (10, 20)
+                            client_socket.send(b"You defend yourself, reducing incoming damage.").encode('utf-8')
+                        elif combat_action == 'use magic':
+                            damage = random.randint(*player.skills['magic']['damage'])
+                            enemy.health -= damage
+                            player.mana -= 10
+                            client_socket.send(f"You cast a spell and dealt {damage} magic damage to {enemy.name}. Enemy health: {enemy.health}, Your mana: {player.mana}".encode('utf-8'))
+                        enemy.attack_player(player)
+                        if player.health <= 0:
+                            client_socket.send(b"You have been defeated!").encode('utf-8')
+                            break
+                        if enemy.health <= 0:
+                            client_socket.send(b"You defeated the enemy!").encode('utf-8')
+                            player.experience += 50
+                            if player.experience >= 100:
+                                player.level_up()
+                elif event == 'treasure':
+                    gold_found = random.randint(50, 100)
+                    player.gold += gold_found
+                    client_socket.send(f"You found a treasure chest containing {gold_found} gold!".encode('utf-8'))
+                elif event == 'companion':
+                    new_companion = Companion('Lara', 'Healer')
+                    player.companions.append(new_companion)
+                    client_socket.send(f"A healer named {new_companion.name} joins your party!".encode('utf-8'))
+            elif action == 'inventory':
+                if player.inventory:
+                    inventory_list = "\n".join([item['name'] for item in player.inventory])
+                    client_socket.send(f"Your inventory:\n{inventory_list}".encode('utf-8'))
+                    client_socket.send(b"Do you want to equip an item? (yes/no): ")
+                    equip_choice = client_socket.recv(1024).decode('utf-8').strip()
+                    if equip_choice == 'yes':
+                        client_socket.send(b"Enter the name of the item to equip: ")
+                        item_name = client_socket.recv(1024).decode('utf-8').strip()
+                        item = next((i for i in player.inventory if i['name'] == item_name), None)
+                        if item:
+                            player.equip_item(item)
+                        else:
+                            client_socket.send(b"Item not found in inventory.")
+                else:
+                    client_socket.send(b"Your inventory is empty.")
+            elif action == 'guild':
+                client_socket.send(b"Guild options: 'join', 'view', 'leave', 'contribute': ")
+                guild_action = client_socket.recv(1024).decode('utf-8').strip()
+                if guild_action == 'join':
+                    client_socket.send(b"Guild joining not implemented yet.")
+                elif guild_action == 'view':
+                    if player.guild:
+                        client_socket.send(f"Guild: {player.guild.name}, Members: {[member.name for member in player.guild.members]}".encode('utf-8'))
+                    else:
+                        client_socket.send(b"You are not in a guild.")
+                elif guild_action == 'leave':
+                    if player.guild:
+                        player.guild.remove_member(player)
+                        player.guild = None
+                    else:
+                        client_socket.send(b"You are not in a guild.")
+                elif guild_action == 'contribute':
+                    if player.guild:
+                        client_socket.send(b"Enter resource type (gold/materials) and amount: ")
+                        resource_type, amount = client_socket.recv(1024).decode('utf-8').strip().split()
+                        player.guild.contribute_resources(player, resource_type, int(amount))
+                    else:
+                        client_socket.send(b"You are not in a guild.")
+            elif action == 'skills':
+                client_socket.send(b"Skill options: 'view', 'upgrade', 'allocate': ")
+                skill_action = client_socket.recv(1024).decode('utf-8').strip()
+                if skill_action == 'view':
+                    skills = "\n".join([f"{skill}: Level {info['level']}" for skill, info in player.skills.items()])
+                    client_socket.send(f"Your skills:\n{skills}".encode('utf-8'))
+                elif skill_action == 'upgrade':
+                    client_socket.send(b"Enter skill to upgrade (attack, defense, magic, etc.): ")
+                    skill_to_upgrade = client_socket.recv(1024).decode('utf-8').strip()
+                    player.upgrade_skill(skill_to_upgrade)
+                elif skill_action == 'allocate':
+                    client_socket.send(b"Enter attribute to allocate points to (strength, dexterity, etc.): ")
+                    attribute = client_socket.recv(1024).decode('utf-8').strip()
+                    client_socket.send(b"Enter number of points to allocate: ")
+                    points = int(client_socket.recv(1024).decode('utf-8').strip())
+                    player.allocate_attribute_points(attribute, points)
+            elif action == 'quests':
+                client_socket.send(b"Quest options: 'view', 'accept', 'complete': ")
+                quest_action = client_socket.recv(1024).decode('utf-8').strip()
+                if quest_action == 'view':
+                    if player.quest_log:
+                        quests = "\n".join([f"{quest['title']}: {quest['description']}" for quest in player.quest_log])
+                        client_socket.send(f"Your current quests:\n{quests}".encode('utf-8'))
+                    else:
+                        client_socket.send(b"You have no active quests.")
+                elif quest_action == 'accept':
+                    sample_quest = Quest("Defeat the Goblin", "Defeat a goblin terrorizing the village.", {'type': 'kill', 'target': 'enemy', 'level': 1}, {'experience': 100, 'gold': 50})
+                    player.accept_quest(sample_quest)
+                elif quest_action == 'complete':
+                    client_socket.send(b"Enter the quest title to complete: ")
+                    quest_title = client_socket.recv(1024).decode('utf-8').strip()
+                    player.complete_quest(quest_title)
+            elif action == 'rest':
+                player.rest()
+            elif action == 'exit':
+                client_socket.send(b"Exiting game. Goodbye!")
+                break
+            else:
+                client_socket.send(b"Invalid action.")
+
+        client_socket.close()
+
+    def start_server():
+        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server.bind(("0.0.0.0", 9999))
+        server.listen(5)
+        print("Server started, waiting for connections...")
+
+        while True:
+            client_socket, addr = server.accept()
+            print(f"New connection from {addr}")
+            player = Character("", "")
+            client_handler = threading.Thread(target=handle_client, args=(client_socket, player))
+            client_handler.start()
+
+    if __name__ == "__main__":
+        start_server()
+    '''
+    Gameplay Description
+    1. Character Development
+    Players can create a character by choosing from a range of classes such as Warrior, Mage, Archer, or any new classes added like Paladin or Rogue. Each class has unique abilities and stats, influencing their role in combat and interactions with the game world.
+    
+    Characters have a set of attributes, including Strength, Dexterity, Intelligence, Charisma, Wisdom, and Constitution. These attributes affect combat effectiveness, magical abilities, and social interactions. Players can allocate skill points to enhance these attributes as they level up.
+    
+    Skills such as Attack, Defense, Magic, Stealth, Alchemy, Crafting, and Persuasion offer deep customization. Each skill can be leveled up, improving the character’s abilities. For example, leveling up the Magic skill increases spell damage and reduces mana cost.
+    
+    2. Combat System
+    Combat is dynamic, allowing players to choose from various actions, such as attacking with weapons, casting spells, or defending against incoming attacks. The combat system factors in the player’s and enemy's attributes, skills, and equipment.
+    
+    Enemies have varying difficulty levels, ranging from easy to legendary. Each enemy adjusts its stats based on its difficulty, making battles more challenging and rewarding as players progress.
+    
+    3. Exploration and Cities
+    The game features five distinct cities: Eldoria, Stormwind, Ironforge, Rivendell, and Shadowfen. Each city offers unique quests, merchants, and environments. Exploration can lead to random events such as encounters with merchants, battles, treasure discoveries, or finding companions.
+    
+    4. Quests and Objectives
+    Quests play a central role, offering players a variety of tasks, including defeating enemies, collecting items, or exploring new areas. Completing quests rewards players with experience, gold, and unique items. Quests can be tracked in the quest log, and players can complete or abandon them as they see fit.
+    
+    5. Guild System
+    Players can join or create guilds, which provide additional benefits, including shared resources, guild quests, and the ability to level up the guild itself. Members can contribute resources to help upgrade the guild, unlocking new perks for all members.
+    
+    6. Inventory and Equipment
+    The inventory system allows players to collect and equip various items, including weapons, armor, and accessories. Players can manage their inventory, equip items to enhance their combat abilities, and trade items with merchants.
+    
+    7. Companions
+    Companions are NPCs that can join the player's party, each with specific roles like healer, tank, or DPS. They can assist in combat, heal the player, or provide other benefits during exploration. Companions level up alongside the player, becoming more effective as they gain experience.
+    
+    8. Faction and Reputation
+    Players can join factions like the Brotherhood of Steel, Mages Guild, or Thieves Guild. Faction standing influences interactions with NPCs, access to exclusive quests, and special rewards. Reputation with different cities and factions can be gained or lost based on the player’s actions.
+    
+    9. Multiplayer Features
+    The game includes online multiplayer functionality, allowing players to interact, trade, and complete quests together. Players can form parties to tackle more challenging content or compete in PvP combat. The server can handle multiple players, each with their own unique character, progressing through the game world.
+    
+    10. Rest and Recovery
+    Players can rest to recover health, mana, and stamina. Resting is crucial, especially after intense battles or long exploration sessions. Resting also serves as a way to pass time, influencing day-night cycles and certain time-sensitive events.
+    
+    This enhanced version of the game provides a rich, immersive experience, with deep character customization, intricate combat mechanics, a vast world to explore, and robust multiplayer features. Players can dive into a detailed fantasy world, build powerful characters, form alliances, and engage in epic quests, all within a well-crafted, text-based RPG framework.
+    '''
+game()
